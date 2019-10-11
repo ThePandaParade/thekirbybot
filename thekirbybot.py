@@ -1598,6 +1598,96 @@ async def e621(ctx,*,search : str):
      await ctx.send(embed=em)
     
 
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of furries getting banged")
+async def furbang(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/bang")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Banging furries",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of a bulge")
+async def furbulge(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/bulge")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Bulge image",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of furries NSFW cuddlin'")
+async def nsfwcuddle(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/cuddle")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Naked cuddles~",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of furries NSFW huggin'")
+async def nsfwhug(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/hug")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Naked hugs~",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of furries making out")
+async def makeout(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/kiss")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Make out session~",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+@commands.is_nsfw()
+@bot.command(brief="Gets an image of furries NSFW licking")
+async def nsfwlick(ctx):
+    async with ctx.message.channel.typing():
+        res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/lick")
+        x = await res.json()
+        url = x["response"]["image"]
+        res = await bot.session.get(url)
+        bytes = await res.read()
+        embed=discord.Embed(title=f"Naked licks~ OwO",color=discord.Color.dark_teal())
+        embed.set_footer(text="Powered by furry.bot")
+        embed.set_image(url=url)
+        await ctx.send(embed=embed)
+
+
+
+
+
+
+
 
 
 #                   #
