@@ -179,10 +179,25 @@ async def on_ready():
 
 @bot.command(brief="The changelog.",description="Displays everything that has been changed recently.")
 async def changelog(ctx):
-    changelog = open("changelog.txt",'r')
-    Truechangelog = changelog.read()
-    await ctx.send(Truechangelog)
-    changelog.close()
+    # changelog = open("changelog.txt",'r')
+    # Truechangelog = changelog.read()
+    # await ctx.send(Truechangelog)
+    # changelog.close()
+    #Time for the new code ;3
+
+    announcements = bot.get_channel(623553307964604417)
+    message_list = await announcements.history(limit=10).flatten()
+    last_message = None
+    for x in message_list:
+        if x.author.id == 478675118332051466:
+            last_message = x
+            break
+    
+    em = discord.Embed(title="Latest Changelog (announcement)",description=str(last_message.content),color=discord.Color.magenta())
+    em.set_author(name=last_message.author.name,icon_url=last_message.author.avatar_url)
+    dt_format = last_message.created_at.strftime("%A %d %B %Y (%H:%M.%S)")
+    em.set_footer(text=f"Sent at {dt_format}")
+    await ctx.send(embed=em)
 
 
 @bot.command(brief="The Support Server!",description="Sends an invite link to the bot's server.")
@@ -200,6 +215,24 @@ async def invite(ctx):
 async def donate(ctx):
     await ctx.send("Click here to donate to the bot: https://www.patreon.com/mainuserdrive")
 	
+
+@bot.command(brief="Grabs info on a github repo")
+async def github(ctx, repo : str):
+    buff = await bot.session.get(f"https://api.github.com/search/repositories?q={repo}")
+    json = await buff.json()
+    if json["total_count"] == 0:
+        return await ctx.send("No repos found")
+    repo = json["items"][0]
+    em = discord.Embed(title=repo["full_name"],description=repo['description'],color=discord.Color.green())
+    em.add_field(name="Watchers",value=f"{repo['watchers_count']} watchers")
+    em.add_field(name="Fork Count",value=f"{repo['forks_count']} forkers")
+    em.add_field(name="Language",value=f"{repo['language']}")
+    em.add_field(name="License",value=f"{repo['license']['name']}")
+    em.set_footer(text="Would add more, but Git's API doesn't have that much.")
+
+    await ctx.send(embed=em)
+
+
 @bot.command(brief="Gets a bunch of bot info, since why not")
 async def stats(ctx):
     second = round((time.time() - bot.starttime))
@@ -224,23 +257,42 @@ async def stats(ctx):
         except Error as e:
             raise e
 
+    usernames = []
+    for x in [468785679036317699,276772483489595394,599340955090288710,290572344190173184,304737539846045696,302604426781261824]:
+        user = await bot.fetch_user(x)
+        usernames.append(user.name)
+
+    usernames = "\n".join(usernames)
     em = discord.Embed(title="Bot Stats",color=0xb50db9)
     em.set_author(name=bot.user.name,icon_url=bot.user.avatar_url,url="https://thekirbybot.xyz")
-    em.add_field(name="Developers",value=f"{discord.utils.get(bot.users,id=478675118332051466)}\n{discord.utils.get(bot.users,id=241600335792046080)}",inline=True)
-    em.add_field(name="Special Thanks",value=f"{discord.utils.get(bot.users,id=468785679036317699)}\n{discord.utils.get(bot.users,id=490591309732642816)}\nAnd the devs...")
+    em.add_field(name="Bot made with love by",value=f"{discord.utils.get(bot.users,id=478675118332051466)}\n{discord.utils.get(bot.users,id=241600335792046080)}",inline=True)
+    em.add_field(name="Special Thanks",value=f"{usernames}")
     em.add_field(name="Uptime",value=f"{day} days, {hour % 24} hours, {minute % 60} minutes, {second % 60} seconds",inline=True)
     em.add_field(name="User Count",value=f"{len(bot.users)}",inline=True)
     em.add_field(name="Server Count",value=f"{len(bot.guilds)}",inline=True)
     em.add_field(name="Commands Run",value=f"{bot.commands_run}",inline=True)
-    em.add_field(name="Command Count",value=f"{len(bot.commands)} commands in total \n{hidden} admin commands\n{nsfw} NSFW commands hidden\n{len(bot.commands) - canrun} commands unable to run (No Permissions)",inline=False)
+    em.add_field(name="Command Count",value=f"{len(bot.commands)} commands in total \n{hidden} admin commands\n{nsfw} NSFW commands hidden\n{len(bot.commands) - canrun - nsfw} commands unable to run (No Permissions)",inline=False)
     em.add_field(name="Being Hosting On",value=f"{platform.system()} (Release: ``{platform.release()}``)")
     em.add_field(name="Version Lists",value=f"Python Version: {str(platform.python_version())}\nDiscord.py Version: {discord.__version__}")
     ramav = psutil._common.bytes2human(psutil.virtual_memory().available)
     ramused = psutil._common.bytes2human(psutil.virtual_memory().used)
     em.add_field(name="System Stats",value=f"CPU Usage: {psutil.cpu_percent()}%\nRAM Available: {ramav}B\nRAM Used: {ramused}B")
-
+    em.set_footer(text="Thank you for using the bot~ <3")
     
     await ctx.send(embed=em)
+
+@commands.has_permissions(manage_roles = True)
+@bot.command(brief="Adds or removes a role from a user, or yourself")
+async def role(ctx, user : discord.Member,*,role : discord.Role):
+    if ctx.author.top_role.position <= user.top_role.position:
+        return await ctx.send("That person has a higher role than you, so no.")
+    if role.id in [x.id for x in user.roles]:
+        await user.remove_roles(role)
+        await ctx.send(f"Removed **{role.name}** from **{user.display_name}**")
+    else:
+        await user.add_roles(role)
+        await ctx.send(f"Added **{role.name}** to **{user.display_name}**")
+
 
 @commands.cooldown(1, 30, commands.BucketType.default)	
 @commands.has_permissions(manage_messages = True)
@@ -269,7 +321,6 @@ async def purge(ctx, number : int = 5,bulk = True):
 
     await ctx.send(f"{discord.utils.get(bot.emojis,id=561904367201157121)} Deleted {deleted} messages")
 
-    
 
 @commands.has_permissions(ban_members = True)
 @bot.command(brief="Unbans a user from the server",description="(THE COMMAND REQUIRES A PING TO UNBAN (DO THIS BY <@(id)> REPLACING (id) WITH THE USER'S ID))")
@@ -419,6 +470,10 @@ async def clap(ctx,*,text):
     em.add_field(name="New Text", value=f"``👏{'👏'.join(table)}👏``")
     await ctx.send(embed=em)
 
+@bot.command(brief="Sets your AFK status")
+async def afk(ctx,*,status : str):
+    await bot.db.afk.update_one({"id": ctx.author.id}, {"$set": {"status": status}}, upsert=True)
+    await ctx.send(f"Alright! You are now AFK for ``{status}``.")
 
 @bot.command(brief="Noot Noot!",aliases=['pingu'],description="Sends a random Noot Noot meme in chat.")
 async def nootnoot(ctx):
@@ -444,9 +499,16 @@ async def kick(ctx, user : discord.Member = None):
 @commands.has_permissions(ban_members = True)
 @bot.command(pass_context=True,brief="Bans a user",description="Permanently bans a user from your server. Optionally, add the reason at the end of the message")
 async def ban(ctx, user : discord.Member,*, reason: str):
-    file = discord.File("memes/banhammer1.gif","wackapow.gif")
     await ctx.guild.ban(user,reason=f"Banned by {ctx.author}: {reason}")
-    await ctx.send(content=f"The ban hammer has wooshed {user.name} out of the server. Woosh!",file=file)
+    choices = [
+        f"**{user.name}** flew and bit the dust",
+        f"**{user.name}** found a wild 404 error, and trusted it.",
+        f"**{user.name}** got game ended",
+        f"**{user.name}** saw stars and fainted",
+        f"**{user.name}** was forced to say bye-bye",
+        f"**{user.name}** decided to see the wrong end of the hammer."
+    ]
+    await ctx.send(content=random.choice(choices))
 
 
 @commands.has_permissions(ban_members = True)
@@ -475,12 +537,15 @@ async def dehoist(ctx,*, newnick : str = "hoister no hoisting"):
             await x.edit(nick=newnick,reason=f"Dehoist Command (Ran by {ctx.author})")
             count = count + 1
             mlist.append(f"{count}. {x} // {pnick}")
-
-    st = "\n".join(mlist)
-    x = await bot.session.post("https://hasteb.in/documents",data=f'Format: (username) // (old nickname)\n\n{st}')
-    buff = await x.json()
-
-    await msg.edit(content=f"Changed **{count}** nicknames.\nList: https://hasteb.in/{buff['key']}")
+            await msg.edit(content=f"Edited {count} nicknames so far. {bot.get_emoji(528578022748454944)}")
+    
+    if count is not 0:
+        st = "\n".join(mlist)
+        x = await bot.session.post("https://hasteb.in/documents",data=f'Format: (username) // (old nickname)\n\n{st}')
+        buff = await x.json()
+        await msg.edit(content=f"Changed **{count}** nicknames.\nList: https://hasteb.in/{buff['key']}")
+    else:
+        await msg.edit(content=f"No nicknames found. No changes made.")
 
 
 @bot.command(brief="Gets an Emoji's Information (Must be a custom emoji)",description="Gets information from a custom Discord emoji.")
@@ -556,7 +621,7 @@ async def trump(ctx,*, text : str = "i wanna build a wall"):
     async with ctx.message.channel.typing():
         res = await bot.session.get(f"https://nekobot.xyz/api/imagegen?type=trumptweet&text={text}")
         x = await res.json()
-        em = discord.Embed(title="Trump tweets something",color=discord.Color.blurple())
+        em = discord.Embed(title="Trump tweets something",color=discord.Color.dark_magenta())
         em.set_image(url=x["message"])
         em.set_footer(text="Powered by nekobot.xyz")
         await ctx.send(embed=em)
@@ -570,7 +635,7 @@ async def changemind(ctx,*, text : str = "Youtube Rewind was bad"):
         x = await res.json()
         url = x["message"]
         res = await bot.session.get(url)
-        em = discord.Embed(title=f"{ctx.author.name} wants their mind changing",color=discord.Color.blurple())
+        em = discord.Embed(title=f"{ctx.author.name} wants their mind changing",color=discord.Color.dark_magenta())
         em.set_image(url=url)
         em.set_footer(text="Powered by nekobot.xyz")
         await ctx.send(embed=em)
@@ -596,8 +661,6 @@ async def roblox(ctx,*,user : int):
     em.set_thumbnail(url=f"https://www.roblox.com/Thumbs/Avatar.ashx?x=500&y=500&userId={x['Id']}")
 
     await ctx.send(embed=em)
-
-
 
 
     
@@ -738,11 +801,7 @@ async def ship(ctx, user : discord.Member, user2 : discord.Member):
         fmt = "Perfect couple!"
      
     em.add_field(name=f"{randomin}%",value=fmt)
-    ship = []
-    ship.append(user.display_name[0:(len(user.name) /2)])
-    ship.append(user2.display_name[(len(user2.name) /2) : len(user2.name)])
-
-    em.add_field("Ship Name",field="".join(ship))
+    em.add_field(name="Ship Name",value="BROKEN: WILL BE FIXED LATER")
     em.set_thumbnail(url=user.avatar_url_as(size=1024))
     em.set_footer(text="Will make the image better once the bot has access to image manipulation")
     await ctx.send(embed=em)
@@ -760,24 +819,26 @@ async def cuddle(ctx, user : discord.Member = "plc"):
     if user == "plc":
         user = ctx.author
 
-    buff = await bot.session.get("https://nekos.life/api/v2/img/cuddle")
+    useAnime = not await bot.db.allowFurryList.find_one({"id": ctx.guild.id})
+    buff = await bot.session.get(("https://nekos.life/api/v2/img/cuddle" if useAnime else "https://api.furry.bot/furry/sfw/cuddle"))
     json = await buff.json()
-    em = discord.Embed(title=(f"{ctx.author.name} just cuddled {user.name}" if not ctx.author == user else f"Its okay {ctx.author.name}, I'll cuddle you"),color=discord.Color.dark_blue())
-    em.set_image(url=json['url'])
-    em.set_footer(text="Powered by nekos.life")
+    em = discord.Embed(title=(f"{ctx.author.name} cuddled {user.name}! They're so cute!" if not ctx.author == user else f"Its okay {ctx.author.name}, I'll cuddle you"),color=discord.Color.dark_blue())
+    em.set_image(url=(json['url'] if useAnime else json['response']['image']))
+    em.set_footer(text=f"Powered by {('nekos.life' if useAnime else 'furry.bot')}")
     await ctx.send(embed=em)
-    
+
 
 @bot.command(brief="Gives someone a lil' hug")
 async def hug(ctx, user : discord.Member = "plc"):
     if user == "plc":
         user = ctx.author
 
-    buff = await bot.session.get("https://nekos.life/api/v2/img/hug")
+    useAnime = not await bot.db.allowFurryList.find_one({"id": ctx.guild.id})
+    buff = await bot.session.get(("https://nekos.life/api/v2/img/hug" if useAnime else "https://api.furry.bot/furry/sfw/hug"))
     json = await buff.json()
     em = discord.Embed(title=(f"{ctx.author.name} just gave {user.name} a hug OwO" if not ctx.author == user else f"Its okay {ctx.author.name}, I'll hug you"),color=discord.Color.dark_blue())
-    em.set_image(url=json['url'])
-    em.set_footer(text="Powered by nekos.life")
+    em.set_image(url=(json['url'] if useAnime else json['response']['image']))
+    em.set_footer(text=f"Powered by {('nekos.life' if useAnime else 'furry.bot')}")
     await ctx.send(embed=em)
 
 
@@ -786,11 +847,12 @@ async def kiss(ctx, user : discord.Member = "plc"):
     if user == "plc":
         user = ctx.author
 
-    buff = await bot.session.get("https://nekos.life/api/v2/img/kiss")
+    useAnime = not await bot.db.allowFurryList.find_one({"id": ctx.guild.id})
+    buff = await bot.session.get(("https://nekos.life/api/v2/img/kiss" if useAnime else "https://api.furry.bot/furry/sfw/kiss") )
     json = await buff.json()
     em = discord.Embed(title=(f"{ctx.author.name} just kissed {user.name}! Can I ship them?" if not ctx.author == user else f"Its ok... Have a kiss {ctx.author.name}"),color=discord.Color.dark_blue())
-    em.set_image(url=json['url'])
-    em.set_footer(text="Powered by nekos.life")
+    em.set_image(url=(json['url'] if useAnime else json['response']['image']))
+    em.set_footer(text=f"Powered by {('nekos.life' if useAnime else 'furry.bot')}")
     await ctx.send(embed=em)
 
 @bot.command(brief="Grabs a random dog")
@@ -908,7 +970,7 @@ async def poll(ctx,*,text):
             reactions.append("9⃣")
         fmt = fmt + f":{numstr}: - {text[count]}\n"
     
-    em = discord.Embed(title=f"Poll - {text[0]}",description=f"{fmt}",color=discord.Color.blurple())
+    em = discord.Embed(title=f"Poll - {text[0]}",description=f"{fmt}",color=discord.Color.dark_magenta())
     em.set_footer(text=f"Requested by: {ctx.author.display_name}",icon_url=ctx.author.avatar_url_as(size=1024))
 
     msg = await ctx.send(embed=em)
@@ -994,6 +1056,79 @@ async def pypi(ctx, package : str):
 
 
 
+# Furry Images Enabled Commands#
+
+#@commands.has_permissions(manage_server = True, administrator=True)
+@bot.command(brief="Enables/disables the use of furry images for this server. (needs manage server perms, but python decided to faint on me while making this)")
+async def furryimages(ctx, set : str):
+    if (not set == "enabled") and (not set == "disabled"):
+        return await ctx.send("Please enter either enabled or disabled.")
+
+    if not ctx.author.guild_permissions.manage_guild:
+        return await ctx.send("You need Manage Server to run that")
+
+    if set == "enabled":
+        await bot.db.allowFurryList.update_one({"id": ctx.guild.id}, {"$set": {"id": ctx.guild.id}}, upsert=True) 
+        await ctx.send("Enabled the use of furry images for this server")
+    else:
+        await bot.db.allowFurryList.delete_one({"id": ctx.guild.id})
+        await ctx.send("Disabled the use of furry images for this server")
+   
+@bot.command(brief="Gives someone a lil' lick (REQUIRES FURRY IMAGES ENABLED)")
+async def lick(ctx, user : discord.Member = "plc"):
+    if not await bot.db.allowFurryList.find_one({"id": ctx.guild.id}):
+        return await ctx.send("This server can not run that due to not allowing furry images. Please ask a server admin to run ``--furryimages enabled``")
+    if user == "plc":
+        user = ctx.author
+
+    
+    buff = await bot.session.get("https://api.furry.bot/furry/sfw/lick")
+    json = await buff.json()
+    em = discord.Embed(title=(f"{ctx.author.name} licked {user.name}!" if not ctx.author == user else f"Llllliiiiick!"),color=discord.Color.dark_blue())
+    em.set_image(url=json['response']['image'])
+    em.set_footer(text=f"Powered by furry.bot")
+    await ctx.send(embed=em)
+
+   
+@bot.command(brief="Gives someone a lil' boop (REQUIRES FURRY IMAGES ENABLED)")
+async def boop(ctx, user : discord.Member = "plc"):
+    if not await bot.db.allowFurryList.find_one({"id": ctx.guild.id}):
+        return await ctx.send("This server can not run that due to not allowing furry images. Please ask a server admin to run ``--furryimages enabled``")
+    if user == "plc":
+        user = ctx.author
+
+    
+    buff = await bot.session.get("https://api.furry.bot/furry/sfw/boop")
+    json = await buff.json()
+    em = discord.Embed(title=(f"{ctx.author.name} booped {user.name}!" if not ctx.author == user else f"Boop!"),color=discord.Color.dark_blue())
+    em.set_image(url=json['response']['image'])
+    em.set_footer(text=f"Powered by furry.bot")
+    await ctx.send(embed=em)
+
+   
+@bot.command(brief="Holds someone's hand (REQUIRES FURRY IMAGES ENABLED)",aliases=['hh'])
+async def holdhands(ctx, user : discord.Member = "plc"):
+    if not await bot.db.allowFurryList.find_one({"id": ctx.guild.id}):
+        return await ctx.send("This server can not run that due to not allowing furry images. Please ask a server admin to run ``--furryimages enabled``")
+    if user == "plc":
+        return await ctx.send("I can do everything, except hold your hand.")
+
+    
+    buff = await bot.session.get("https://api.furry.bot/furry/sfw/hold")
+    json = await buff.json()
+    em = discord.Embed(title=(f"{ctx.author.name} held {user.name}'s hand!"),color=discord.Color.dark_blue())
+    em.set_image(url=json['response']['image'])
+    em.set_footer(text=f"Powered by furry.bot")
+    await ctx.send(embed=em)
+
+
+
+
+
+
+
+
+
 #               #
 # NSFW COMMANDS #
 #               #
@@ -1003,7 +1138,6 @@ async def pypi(ctx, package : str):
 async def nsfwtest(ctx):
     await ctx.send("Worked")
 
-emotes = [574388118237609999,574388117369520129,574388118036152342]
 
 @commands.is_nsfw()
 @bot.command(brief="Searches Urban Dictionary for a definition of a word")
@@ -1011,7 +1145,7 @@ async def urban(ctx,*,word : str):
     res = await bot.session.get(f"http://api.urbandictionary.com/v0/define?term={word}")
     data = await res.json()
     obj = data['list'][1]
-    em = discord.Embed(title=f"Urban Dictionary: {word}",color=discord.Color.blurple())
+    em = discord.Embed(title=f"Urban Dictionary: {word}",color=discord.Color.dark_magenta())
     em.add_field(name="Definition",value=(obj['definition'] if len(obj['definition']) >= 2000 else obj['definition'][1:2000]))
     em.add_field(name="Example",value=obj['example'],inline=False)
     em.set_footer(text=f"Written by: {obj['author']}")
@@ -1031,7 +1165,7 @@ async def hentaigif(ctx, mode : int = 0):
   url = x[("url" if mode == 1 else "message")]
   res = await bot.session.get(url)
   bytes = await res.read()
-  embed=discord.Embed(title=f"Hentai gif",color=discord.Color.greyple())
+  embed=discord.Embed(title=f"Hentai gif",color=discord.Color.dark_teal())
   embed.set_footer(text=f"Powered by {('nekos.life' if mode == 1 else 'nekobot.xyz')}")
   embed.set_image(url=url)
   await ctx.send(embed=embed)
@@ -1047,7 +1181,7 @@ async def hentai(ctx):
   url = x["url"]
   res = await bot.session.get(url)
   bytes = await res.read()
-  embed=discord.Embed(title=f"Hentai {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+  embed=discord.Embed(title=f"Hentai ",color=discord.Color.dark_teal())
   embed.set_footer(text="Powered by nekos.life")
   embed.set_image(url=url)
   await ctx.send(embed=embed)
@@ -1061,7 +1195,7 @@ async def futanari(ctx):
   url = x["url"]
   res = await bot.session.get(url)
   bytes = await res.read()
-  embed=discord.Embed(title=f"Futanari {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+  embed=discord.Embed(title=f"Futanari",color=discord.Color.dark_teal())
   embed.set_footer(text="Powered by nekos.life")
   embed.set_image(url=url)
   await ctx.send(embed=embed)
@@ -1075,7 +1209,7 @@ async def pussy(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Random pussy {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Random pussy",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1092,7 +1226,7 @@ async def nsfwneko(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"NSFW Neko gif {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"NSFW Neko gif ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1108,7 +1242,7 @@ async def lewd(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Lewd {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Lewd ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1123,7 +1257,7 @@ async def trap(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"A trap {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"A trap ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1139,7 +1273,7 @@ async def solo(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Solo pic {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Solo pic ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1154,7 +1288,7 @@ async def blowjob(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Blowjob {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Blowjob ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1168,7 +1302,7 @@ async def boobs(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Boobs pic {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Boobs pic ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1182,7 +1316,7 @@ async def cum(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Some cum {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Some cum ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1196,7 +1330,7 @@ async def anal(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Anal pic {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Anal pic ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1211,7 +1345,7 @@ async def lewdneko(ctx):
         url = x["message"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Lewd neko {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Lewd neko ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1226,7 +1360,7 @@ async def pwankg(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Random pwankg gif",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Random pwankg gif",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1240,7 +1374,7 @@ async def sologif(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Solo pic {discord.utils.get(bot.emojis,id=random.choice(emotes))}",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Solo pic ",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1255,7 +1389,7 @@ async def holo(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Holo lewd",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Holo lewd",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1269,7 +1403,7 @@ async def lewdkemo(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Lewd kemo",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Lewd kemo",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1283,7 +1417,7 @@ async def nekogif(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Neko gif",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Neko gif",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1297,7 +1431,7 @@ async def keta(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Keta pic",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Keta pic",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1312,7 +1446,7 @@ async def kuni(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Kuni pic",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Kuni pic",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1326,7 +1460,7 @@ async def erokemo(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Ero kemo pic",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Ero kemo pic",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1340,7 +1474,7 @@ async def holoero(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Holo ero",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Holo ero",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1354,7 +1488,7 @@ async def lesbian(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Lesbian gif",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Lesbian gif",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1368,7 +1502,7 @@ async def classichentai(ctx):
         url = x["url"]
         res = await bot.session.get(url)
         bytes = await res.read()
-        embed=discord.Embed(title=f"Classic Hentai",color=discord.Color.greyple())
+        embed=discord.Embed(title=f"Classic Hentai",color=discord.Color.dark_teal())
         embed.set_footer(text="Powered by nekos.life")
         embed.set_image(url=url)
         await ctx.send(embed=embed)
@@ -1455,7 +1589,10 @@ async def e621(ctx,*,search : str):
      except:
          return await ctx.send("No posts found")
      em = discord.Embed(description=f"**Score {result['score']} **|** Rating: {result['rating']} **|** [Post]({result['sample_url']})**",color=discord.Color.blue())
-     em.set_image(url=result['file_url'])
+     if not result['file_url'].endswith('.webm'):
+        em.set_image(url=result['file_url'])
+     else:
+        em.add_field(name="Unable to view file (webm)",value="Discord's embed system doesn't work with webm files. Please view on e621")
      em.set_footer(text=f"Post ID: {result['id']} | Author: {result['author']}")
 
      await ctx.send(embed=em)
@@ -1485,25 +1622,25 @@ async def help(ctx,cmd : str = ""):
                 if ctx.channel.nsfw:
                   for x in command.checks:
                    if "is_nsfw" in str(x):
-                     nsfwcmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                     nsfwcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
                    else:
-                     if not f'{command.name} - {(command.brief if command.brief else "No Brief Available")}' in runcmds:
-                        runcmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                     if not f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}' in runcmds:
+                        runcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
                   else:
-                      if not f'{command.name} - {(command.brief if command.brief else "No Brief Available")}' in nsfwcmds and not f'{command.name} - {(command.brief if command.brief else "No Brief Available")}' in runcmds:
-                          runcmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                      if not f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}' in nsfwcmds and not f'{command.name} - {(command.brief if command.brief else "No Brief Available")}' in runcmds:
+                          runcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
 
                 else:
-                    runcmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                    runcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
              elif command.hidden:
-                 admincmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                 admincmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
             except discord.ext.commands.CommandError:
                 for check in command.checks:
                  if "is_nsfw" in str(check):
-                     nsfwcmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                     nsfwcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
                 for x in nsfwcmds:
-                    if not f'{command.name} - {(command.brief if command.brief else "No Brief Available")}':
-                     nruncmds.append(f'{command.name} - {(command.brief if command.brief else "No Brief Available")}')
+                    if not f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}':
+                     nruncmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
             except Exception as e:
                 raise e
     runcmds = sorted(runcmds)
@@ -1807,7 +1944,7 @@ async def on_command_error(ctx, error): #Error handler
     em.add_field(name="Message",value=f"Content: ``{ctx.message.content}``\nID: {ctx.message.id}")
     em.set_thumbnail(url=ctx.author.avatar_url)
     em.set_footer(text=f"Error Code: {code} ")
-    await bot.get_channel(558699065072943105).send(embed=em)
+    await bot.get_channel(632269115247296522).send(embed=em)
 
 @bot.event
 async def restartbot(ctx):
@@ -1838,6 +1975,17 @@ async def on_message(ctx):
     if f"<@{bot.user.id}>" == ctx.content or f"<@!{bot.user.id}>" == ctx.content:
         return await ctx.channel.send(f"Hi! I'm The Kirby Bot, a multipurpose bot for your needs. The server prefix here is ``{(f'{p[0]}`` or a mention' if isinstance(p,list) else f'{p}``')}.")    
     
+    try: #just so if no pings are in a message it doesnt die
+     if ctx.mentions[0]:
+        mentiont = ctx.mentions[0]
+        dbentry = await bot.db.afk.find_one({'id': mentiont.id})
+        if dbentry:
+            await ctx.channel.send(f"Hush, {mentiont} is AFK for ``{dbentry['status']}``")
+    except IndexError:
+     pass
+    except Exception as e:
+     raise e
+
 
     try: #Put this in a try/except statement to avoid spam in the terminal during start up
      if await bot.db.blacklist.find_one({"id": str(ctx.author.id)}):
@@ -1846,6 +1994,10 @@ async def on_message(ctx):
             reason = d['reason']
             by = d['by']
             return await ctx.channel.send(f"Oh look at you. You are special. You have been banned from the bot by {usr}. Want to know why? Because {reason}. Now go away")
+     if await bot.db.afk.find_one({"id": ctx.author.id}):
+       await bot.db.afk.delete_one({"id": ctx.author.id})
+       await ctx.channel.send(f"Welcome back {ctx.author.display_name}! I cleared your AFK status.")
+       return
     except:
         pass
     
@@ -1892,14 +2044,15 @@ async def on_guild_join(guild):
          bots += 1
      else:
          human += 1
-    em = discord.Embed(title=f"{bot.user.name} has joined a guild!",color=discord.Colour.blurple())
+    em = discord.Embed(title=f"{bot.user.name} has joined a guild!",color=discord.Colour.magenta())
     em.add_field(name="Name",value=guild.name)
     em.add_field(name="ID",value=guild.id)
     em.add_field(name="Member Count",value=f"{len(guild.members)} members ({human} humans, {bots} bots)")
+    em.add_field(name="Bot Percentage",value=f"{round(human/100*bots)}%")
     em.add_field(name="Owner",value=f"{guild.owner.name}")
     em.set_footer(text=f"Guild Number: {len(bot.guilds)} | On Shard: {guild.shard_id}")
     em.set_thumbnail(url=guild.icon_url)
-    await discord.utils.get(bot.get_guild(558035191193665537).channels,id=558699085859782656).send(embed=em)
+    await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
     
 
 
@@ -1917,10 +2070,11 @@ async def on_guild_remove(guild):
     em.add_field(name="Name",value=guild.name)
     em.add_field(name="ID",value=guild.id)
     em.add_field(name="Member Count",value=f"{len(guild.members)} members ({human} humans, {bots} bots)")
+    em.add_field(name="Bot Percentage",value=f"{round(human/100*bots)}%")
     em.add_field(name="Owner",value=f"{guild.owner.name}")
     em.set_footer(text=f"Guild Number: {len(bot.guilds)} | On Shard: {guild.shard_id}")
     em.set_thumbnail(url=guild.icon_url)
-    await discord.utils.get(bot.get_guild(558035191193665537).channels,id=558699085859782656).send(embed=em)
+    await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
     
 
 
