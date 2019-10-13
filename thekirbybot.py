@@ -162,6 +162,14 @@ async def on_ready():
         bot.load_extension('dbl')
         bot.load_extension('ddb')
 
+    # if os.path.exists("restart.txt"):
+    #     fl = open("restart.txt")
+    #     ids = fl.readlines()
+    #     channel = await bot.get_channel(ids[0])
+    #     await channel.fetch_message(ids[1]).edit("Successfully restarted!")
+    #     fl.close()
+    #     os.remove("restart.txt")
+
 
 
 
@@ -587,11 +595,8 @@ async def ping(ctx):
 
 
 
-@bot.command(brief="Restarts the bot",hidden=True)
-async def restart(ctx):
-    if ctx.message.author.id == botowner or ctx.message.author.id == 241600335792046080: 
-        await ctx.send(f"Restarting... {bot.get_emoji(528578022748454944)}")
-        await restartbot(ctx)   
+
+        
 
 
 @bot.command()
@@ -1779,6 +1784,38 @@ async def dm(ctx,user : discord.User,*,msg : str):
         await ctx.send(f"**Successfuly sent a DM to {user.name}**")
 
 
+@bot.command(hidden=True,brief="Broadcasts a message to all of bot's servers (not incluiding bot lists)")
+async def broadcast(ctx,*, message : str):
+    if ctx.author.id in config["Admin"]:
+        for x in bot.guilds:
+            if not "list" in x.name.lower() and not "plexi" in x.name.lower() and not "discord" in x.name.lower(): #good lord thats a lotta statements
+                #for c in x.channels:
+                 for c in ctx.guild.channels: #just for testing :P
+                    try:
+                        await c.send(f"__**PUBLIC BOT ANNOUNCEMENT**__\n\n{message}")
+                        await ctx.send(f"Sent announcement to {c.name} ({c.id}) in {c.guild.name} ({c.guild.id})")
+                        break
+                    except discord.Forbidden:
+                        pass
+                    except AttributeError:
+                        pass
+                    except Exception as e:
+                        raise e
+
+
+@bot.command(brief="Restarts the bot",hidden=True)
+async def restart(ctx):
+    if ctx.message.author.id in config["Admin"]: 
+        await ctx.send("Closing bot session...")
+        await bot.session.close()
+        await ctx.send("Saving file for restart...")
+        file = open("restart.txt","w+")
+        file.write(f"{ctx.channel.id}\n{ctx.message.id}")
+        await ctx.send("Unloading cogs...")
+        for cog in bot.cogs:
+            bot.unload_extension(cog.name)
+        await ctx.send("Closing file and logging out...")
+        await bot.logout()
 
 
 @bot.command(hidden=True)
@@ -2144,7 +2181,8 @@ async def on_guild_join(guild):
     em.set_thumbnail(url=guild.icon_url)
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
     
-
+    body = {"value1": str(guild.name), "value2": str(guild.icon_url)}
+    await bot.session.post(url=tokens["ifttt"]["join"],data=body)
 
 
 @bot.event
@@ -2165,7 +2203,9 @@ async def on_guild_remove(guild):
     em.set_footer(text=f"Guild Number: {len(bot.guilds)} | On Shard: {guild.shard_id}")
     em.set_thumbnail(url=guild.icon_url)
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
-    
+
+    body = {"value1": str(guild.name), "value2": str(guild.icon_url)}
+    await bot.session.post(url=tokens["ifttt"]["leave"],data=body)
 
 
 #MODLOG EVENTS#
