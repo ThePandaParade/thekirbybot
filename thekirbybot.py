@@ -1789,7 +1789,7 @@ async def help(ctx,cmd : str = ""):
     for command in bot.commands: 
             try:
              if await command.can_run(ctx) and not command.hidden:
-                if ctx.message.dm_channel or ctx.channel.nsfw :
+                if ctx.channel.nsfw :
                   for x in command.checks:
                    if "is_nsfw" in str(x):
                      nsfwcmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
@@ -1810,7 +1810,7 @@ async def help(ctx,cmd : str = ""):
                 for x in nsfwcmds:
                     if not f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}':
                      nruncmds.append(f'**{command.name}**\n{(command.brief if command.brief else "No Brief Available")}')
-            except AttributeError:
+            except AttributeError as e:
                 return await ctx.send("Awfully sorry, but since on how Python is structured, you have to run --help in a server")
                 #Todo: fix this
             
@@ -1822,10 +1822,12 @@ async def help(ctx,cmd : str = ""):
     nsfwcmds = sorted(nsfwcmds)
 
     runcmdss = "\n".join(runcmds)
-    msg = "All commands (and formats) can be found at https://thekirybot.xyz"
+    #Aight, we have facts.txt for a reason. Time to use it.
+    factlist = open("facts.txt","r")
+    flist = factlist.readlines()
     try:
         embeds = [
-            discord.Embed(title="Runnable Commands (pt 1)",description=runcmdss[0:1998],color=discord.Color.green()),
+            discord.Embed(title="Runnable Commands (pt 1)",description=runcmdss[0:1998],color=discord.Color.green(),footer=random.choice(flist)),
             discord.Embed(title="Runnable Commands (pt 2)",description=runcmdss[1999:len(runcmdss)],color=discord.Color.green()),
             discord.Embed(title="Not-Runnable Commands",description=("\n".join(nruncmds) if not nruncmds == [] else "N/A"),color=discord.Color.dark_red()),
             discord.Embed(title="NSFW Commands",description=("\n".join(nsfwcmds) if ctx.channel.nsfw or ctx.message.dm_channel else f"Hidden {len(nsfwcmds)} commands. For them to show, please run the command in a NSFW channel"),color=discord.Color.dark_teal()),
@@ -2038,6 +2040,31 @@ async def _eval(ctx, *, body):
         await ctx.message.add_reaction(bot.get_emoji(522530579627900938))  # x
     else:
         await ctx.message.add_reaction(bot.get_emoji(522530578860605442)) #tick
+    
+    #Oh no, logging
+    em = discord.Embed(title="Evaluated Code Ran",color=discord.Color.red(),timestamp=datetime.datetime.now())
+    em.add_field(name="Code",value=f"```{body}```",inline=False)
+    if err:
+        em.add_field(name="Output",value=f"{err.content}")
+    else:
+        em.add_field(name="Output",value=f"{out.content}")
+    em.set_footer(text=f"Ran by {ctx.author}",icon_url=ctx.author.avatar_url)
+
+    await (bot.get_channel(637410687064342535)).send(embed=em)
+
+
+#why did i add this?
+@bot.command(hidden=True)
+async def randomemoji(ctx):
+    if ctx.author.id in config["Admin"]:
+        selected = random.choice(bot.emojis)
+        em = discord.Embed(color=randomColor())
+        em.set_image(url=selected.url)
+        em.set_footer(text=f"From: {selected.guild}",icon_url=selected.guild.icon_url)
+
+        await ctx.send(embed=em)
+
+
 		  
 
 @bot.command(name="exec", hidden=True)
