@@ -29,7 +29,7 @@ class dbl(commands.Cog):
 
         async with self.bot.session.post(url, data=dump, headers=head) as resp:
             print('returned {0.status} for {1} on dbl'.format(resp, dump))
-            await self.bot.get_channel(581803242992697346).send("**DBL:** Returned {0.status} for {1}".format(resp, dump))
+            await self.bot.get_channel(632269137711726592).send("**DBL:** Returned {0.status} for {1}".format(resp, dump))
 
 
     async def on_ready(self):
