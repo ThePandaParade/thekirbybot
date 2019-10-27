@@ -36,6 +36,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from googlesearch import search
 import disputils #Some utils
 import threading
+from context import CustomContext
 
 prefix = "b-"
 
@@ -2041,16 +2042,6 @@ async def _eval(ctx, *, body):
     else:
         await ctx.message.add_reaction(bot.get_emoji(522530578860605442)) #tick
     
-    #Oh no, logging
-    em = discord.Embed(title="Evaluated Code Ran",color=discord.Color.red(),timestamp=datetime.datetime.now())
-    em.add_field(name="Code",value=f"```{body}```",inline=False)
-    if err:
-        em.add_field(name="Output",value=f"{err.content}")
-    else:
-        em.add_field(name="Output",value=f"{out.content}")
-    em.set_footer(text=f"Ran by {ctx.author}",icon_url=ctx.author.avatar_url)
-
-    await (bot.get_channel(637410687064342535)).send(embed=em)
 
 
 #why did i add this?
@@ -2205,6 +2196,20 @@ async def nekobotfilter(ctx,type : str, param : str):
     await ctx.send(file=discord.File(bytes, f"{type}-{random.randint(0,999999999)}.png"))
 
 
+@bot.event
+async def on_message_edit(bctx,actx): #Bring it on Eric.
+    p = await getprefix(bot,actx)
+    if not bctx.content == actx.content:
+        if actx.content.startswith(p):
+            #Try to find the last message sent by the bot
+            messagel = await (actx.channel.history(limit=10)).flatten() #Just to reduce ram usage
+            last_msg = discord.utils.get(messagel,author=actx.guild.me)
+            ctx = await bot.get_context(actx,cls=CustomContext)
+            ctx.edit = True
+            await bot.invoke(ctx)
+
+
+
 
 @bot.event
 async def on_command(ctx):
@@ -2325,6 +2330,18 @@ async def on_guild_remove(guild):
     await bot.session.post(url=tokens["ifttt"]["leave"],data=body)
 
 
+@bot.event
+async def process_commands(octx):
+    ctx = await bot.get_context(octx,cls=CustomContext)
+
+    await bot.invoke(ctx)
+
+
+
+
+
+
+
 #MODLOG EVENTS#
 
 @bot.event
@@ -2333,7 +2350,7 @@ async def on_message_delete(msg):
         em = discord.Embed(title="Deleted Message",description=msg.content,color=discord.Color.red(),timestamp=datetime.datetime.now())
         em.set_author(name=msg.author.display_name,icon_url=msg.author.avatar_url)
 
-        channel = bot.get_channel(bot.db.modlog.find_one({"id": msg.guild.id})["channel"])
+        channel = bot.get_channel((await bot.db.modlog.find_one({"id": msg.guild.id}))["channel"])
         await channel.send(embed=em)
 
 
@@ -2342,7 +2359,7 @@ async def on_message_delete(msg):
 
 
 try:
- if platform.platform() == 'Linux-5.0.0-32-generic-x86_64-with-Ubuntu-19.04-disco':
+ if platform.platform() == 'Linux-5.3.0-20-generic-x86_64-with-Ubuntu-19.10-eoan':
     print("Starting Beta...")
     bot.run(tokens["bot"]["beta"])
  elif platform.system() == "Linux":
