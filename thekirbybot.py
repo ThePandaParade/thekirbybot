@@ -280,7 +280,7 @@ async def stats(ctx):
             raise e
 
     usernames = []
-    for x in [591532372051099648,599340955090288710,290572344190173184,304737539846045696,302604426781261824,138746272004833280,108096312565567488]:
+    for x in [591532372051099648,599340955090288710,290572344190173184,304737539846045696,302604426781261824,138746272004833280,108096312565567488,292690616285134850]:
         user = await bot.fetch_user(x)
         usernames.append(user.name)
 
@@ -2305,6 +2305,35 @@ async def on_guild_join(guild):
     
     body = {"value1": str(guild.name), "value2": str(guild.icon_url)}
     await bot.session.post(url=tokens["ifttt"]["join"],data=body)
+
+@bot.event
+async def on_guild_unavailable(guild):
+    em = discord.Embed(title=f"{guild} unavailable",description="This guild has became unavailable. This might be due to Discord downtime.",color=discord.Colour.orange())
+    em.add_field(name="ID",value=guild.id)
+    em.add_field(name="Owner",value=guild.owner.name)
+    em.add_field(name="Shard ID",value=guild.shard_id)
+    em.add_field(name="Member Count",value=len(guild.members))
+    em.set_thumbnail(url=guild.icon_url)
+    em.set_footer(text=f"Current Guild Count: {len(bot.guilds)}")
+
+    await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
+
+
+
+@bot.event
+async def on_guild_available(guild):
+    if bot.is_ready():
+        em = discord.Embed(title=f"{guild} recovered",description="This guild has recovered. It might of been unavailable due to downtime.",color=discord.Colour.magenta())
+        em.add_field(name="ID",value=guild.id)
+        em.add_field(name="Owner",value=guild.owner.name)
+        em.add_field(name="Shard ID",value=guild.shard_id)
+        em.add_field(name="Member Count",value=len(guild.members))
+        em.set_thumbnail(url=guild.icon_url)
+        em.set_footer(text=f"Current Guild Count: {len(bot.guilds)}")
+
+        await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
+    else:
+        pass
 
 
 @bot.event

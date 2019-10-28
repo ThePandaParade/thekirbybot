@@ -5,6 +5,7 @@ import asyncio
 class CustomContext(commands.Context):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs) 
+        self.edit = kwargs.get("edit")
 
     async def _send(self, content=None, *, tts=False, embed=None, file=None, files=None, delete_after=None, nonce=None): #you fucking nonce - Ramsay
         #Helper function, do not call
@@ -22,12 +23,7 @@ class CustomContext(commands.Context):
         return m
 
     async def send(self, content=None, *, tts=False, embed=None, file=None, files=None, delete_after=None, nonce=None, edit=False):
-        ctxpass = False
-        for x in self.args:
-            print(x.kwargs)
-            if str(x) == "edit" and self.kwargs[x] == True:
-                ctxpass = True
-        if edit or ctxpass:
+        if edit or self.edit:
             return await self._send(content=content, tts=tts, embed=embed, file=file, files=files, delete_after=delete_after, nonce=nonce)
 
         return await super().send(content=content, tts=tts, embed=embed, file=file, files=files, delete_after=delete_after, nonce=nonce)
