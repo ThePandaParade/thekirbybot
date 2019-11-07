@@ -280,7 +280,7 @@ async def stats(ctx):
             raise e
 
     usernames = []
-    for x in [591532372051099648,599340955090288710,290572344190173184,304737539846045696,302604426781261824,138746272004833280,108096312565567488,292690616285134850]:
+    for x in config["SpecialThanks"]:
         user = await bot.fetch_user(x)
         usernames.append(user.name)
 
@@ -515,7 +515,6 @@ async def suggestion(ctx, *, text : str):
     suggestionhook.send(f"**Suggestion Recieved**\n``{text}``\nUser: {ctx.author}")
     await ctx.send("**Sent the suggestion to the devs!**")
 
-
 @commands.has_permissions(kick_members = True)
 @bot.command(pass_context=True,brief="Kicks a user",description="Kicks a user from your server. The user will be able to rejoin with a new invite link.")
 async def kick(ctx, user : discord.Member = None):
@@ -524,7 +523,8 @@ async def kick(ctx, user : discord.Member = None):
         f"**{user.name}** flew off the stage but forgot to recover",
         f"**{user.name}** got shown the door",
         f"**{user.name}** got their membership permissions revoked",
-        f"**{user.name}** got oof'd"
+        f"**{user.name}** got oof'd",
+        f"**{user.name}** got 505'd"
     ]
     await ctx.send(content=random.choice(choices))
 
@@ -614,12 +614,53 @@ async def devmsg(ctx, *, msg):
     await chnl.send(embed=embed)
   
   
+@commands.cooldown(1,10,commands.BucketType.default)
 @bot.command(brief="Retrieves the time the bot can communicate with Discord")
 async def ping(ctx):
-    embed=discord.Embed(title="", url="", description="",color=0xb50db9)
+    edittime = time.time()
+    pingtime = round(bot.latency * 1000,2)
+    nekoslife = "Retrieving nekos.life response time.."
+    furrybot = "Retrieving furry.bot response time.."
+    msg = await ctx.send("Pinging in the 90s, its a new place you want to be!")
+
+    embed=discord.Embed(title="", url="", description="",color=randomColor())
     embed.set_author(name=bot.user.name,icon_url=bot.user.avatar_url)
-    embed.add_field(name="Ping!", value=f"{bot.latency * 1000:.2f}ms Latency", inline=False)
-    await ctx.send(embed=embed)
+    embed.add_field(name="Ping!", value=f"{pingtime}ms Latency\nRetrieving edit time...\n{nekoslife}\n{furrybot}", inline=False)
+    await msg.edit(content=None,embed=embed)
+
+    edittime = round((time.time() - edittime) * 100,2)
+    embed.set_field_at(index=0,name="Ping!",value = f"{pingtime}ms Latency\n{edittime}ms Edit Latency\n{nekoslife}\n{furrybot}")
+    await msg.edit(content=None,embed=embed)
+
+    #Getting nekos.life response time#
+    try:
+        nekoslife = time.time()
+        buff = await bot.session.get("https://nekos.life/api/v2/img/bj")
+        json = await buff.json()
+        nekoslife = f"{round((time.time() - nekoslife) * 100,2)}ms Response time (nekos.life)"
+    except Exception as e:
+        nekoslife = "Unable to get nekos.life response time."
+
+    embed.set_field_at(index=0,name="Ping!",value = f"{pingtime}ms Latency\n{edittime}ms Edit Latency\n{nekoslife}\n{furrybot}")
+    await msg.edit(content=None,embed=embed)
+
+    #Getting furry.bot response time#
+    try:
+        furrybot = time.time()
+        buff = await bot.session.get("https://api.furry.bot/furry/nsfw/yiff/gay") #Use an NSFW endpoint for the memes
+        json = await buff.json()
+        furrybot = f"{round((time.time() - furrybot) * 100,2)}ms Response time (furry.bot)"
+    except Exception as e:
+        furrybot = "Unable to get furry.bot response time."
+
+    embed.set_field_at(index=0,name="Ping!",value = f"{pingtime}ms Latency\n{edittime}ms Edit Latency\n{nekoslife}\n{furrybot}")
+    await msg.edit(content=None,embed=embed)
+
+
+
+
+
+    
 
 
 
@@ -801,7 +842,7 @@ async def modlog(ctx, channel): #i knew this was a bad idea
         await bot.db.modlog.update_one({"id": ctx.guild.id}, {"$set": {"channel": chan.id}}, upsert=True) #Chiki-chan~
         await ctx.send(f"Modlogs are now turned ON in {chan.mention}. Enjoy!") #Now events
 
-@bot.command(brief="Gets someone's avatar")
+@bot.command(brief="Gets someone's avatar",aliases=["av"])
 async def avatar(ctx,user : discord.User = "plc"):
     if user == "plc":
         user = ctx.author
@@ -1209,7 +1250,7 @@ async def holdhands(ctx, user : discord.Member = "plc"):
 #                   #
 
 @commands.is_nsfw()
-@bot.command(brief="Fucks another user",aliases=["fuck"])
+@bot.command(brief="Fucks another member, in bed.",aliases=["fuck"])
 async def bang(ctx, user : discord.Member):
     async with ctx.message.channel.typing():
         res = await bot.session.get(f"https://api.furry.bot/furry/nsfw/bang")
@@ -2080,9 +2121,15 @@ async def blacklist(ctx,user : int,*, reason : str = "No Reason"):
         if await bot.db.blacklist.find_one({"id": str(user.id) }):
             bot.db.blacklist.delete_one({"id": str(user.id)})
             await ctx.send(f"Unblacklisted ``{user}`` from the bot")
+            em = discord.Embed(title="User Unlacklisted",description=f"``{user}`` unblacklisted",color=discord.Color.green())
+            em.set_footer(text=f"Executed by {ctx.author}")
+            await (bot.get_channel(637410687064342535)).send(embed=em)
         else:
             await bot.db.blacklist.update_one({"id": str(user.id)}, {"$set": {"reason": reason, "by": f"{ctx.author.name}#{ctx.author.discriminator}"}}, upsert=True)
             await ctx.send(f"Blacklisted ``{user}`` for ``{reason}``")
+            em = discord.Embed(title="User Blacklisted",description=f"``{user}`` blacklisted for ``{reason}``",color=discord.Color.red())
+            em.set_footer(text=f"Executed by {ctx.author}")
+            await (bot.get_channel(637410687064342535)).send(embed=em)
 
 
 @bot.command(hidden=True,aliases=['aui','adminui'])
@@ -2126,6 +2173,7 @@ async def advanceduserinfo(ctx, user : int):
 #                    #
 #                    #
 	
+
 @bot.event
 async def on_command_error(ctx, error): #Error handler     
     if isinstance(error, commands.CommandNotFound):
@@ -2286,25 +2334,38 @@ async def on_member_leave(member):
 
 @bot.event
 async def on_guild_join(guild):
+    adminusr = []
+    stusr = []
     bots = 0
     human = 0
-    for m in guild.members:
-     if m.bot == True:
+    for x in guild.members:
+        if x.id in config["Admin"]:
+            adminusr.append(f"{discord.utils.get(bot.emojis,id=639224003223093266)} | {discord.utils.get(bot.users,id=x.id)}")
+        if x.id in config["SpecialThanks"]:
+            stusr.append(f"{discord.utils.get(bot.emojis,id=639224187889647626)} | {discord.utils.get(bot.users,id=x.id)}")
+        if x.bot == True:
          bots += 1
-     else:
+        else:
          human += 1
+
+
+    fmt = "\n".join(adminusr)
+    fmt = fmt + "\n" + "\n".join(stusr)
     em = discord.Embed(title=f"{bot.user.name} has joined a guild!",color=discord.Colour.magenta())
     em.add_field(name="Name",value=guild.name)
     em.add_field(name="ID",value=guild.id)
     em.add_field(name="Member Count",value=f"{len(guild.members)} members ({human} humans, {bots} bots)")
     em.add_field(name="Bot Percentage",value=f"{round(len(guild.members)*bots/100)}%")
     em.add_field(name="Owner",value=f"{guild.owner.name}")
+    if not fmt == "\n":
+        em.add_field(name="Admins/Special in Guild",value=fmt,inline=False)
     em.set_footer(text=f"Guild Number: {len(bot.guilds)} | On Shard: {guild.shard_id}")
     em.set_thumbnail(url=guild.icon_url)
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
     
     body = {"value1": str(guild.name), "value2": str(guild.icon_url)}
     await bot.session.post(url=tokens["ifttt"]["join"],data=body)
+
 
 @bot.event
 async def on_guild_unavailable(guild):
@@ -2338,13 +2399,24 @@ async def on_guild_available(guild):
 
 @bot.event
 async def on_guild_remove(guild):
+    adminusr = []
+    stusr = []
     bots = 0
     human = 0
-    for m in guild.members:
-     if m.bot == True:
+    for x in guild.members:
+        if x.id in config["Admin"]:
+            adminusr.append(f"{discord.utils.get(bot.emojis,id=639224003223093266)} | {discord.utils.get(bot.users,id=x.id)}")
+        if x.id in config["SpecialThanks"]:
+            stusr.append(f"{discord.utils.get(bot.emojis,id=639224187889647626)} | {discord.utils.get(bot.users,id=x.id)}")
+        if x.bot == True:
          bots += 1
-     else:
+        else:
          human += 1
+
+
+    fmt = "\n".join(adminusr)
+    fmt = fmt + "\n" + "\n".join(stusr)
+
     em = discord.Embed(title=f"{bot.user.name} has left a guild!",color=discord.Colour.purple())
     em.add_field(name="Name",value=guild.name)
     em.add_field(name="ID",value=guild.id)
@@ -2352,6 +2424,8 @@ async def on_guild_remove(guild):
     em.add_field(name="Bot Percentage",value=f"{round(len(guild.members)/100*bots)}%")
     em.add_field(name="Owner",value=f"{guild.owner.name}")
     em.set_footer(text=f"Guild Number: {len(bot.guilds)} | On Shard: {guild.shard_id}")
+    if not fmt == "\n":
+        em.add_field(name="Admins/Special in Guild",value=fmt,inline=False)
     em.set_thumbnail(url=guild.icon_url)
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
 
@@ -2388,12 +2462,12 @@ async def on_message_delete(msg):
 
 
 try:
- if platform.platform() == 'Linux-5.3.0-20-generic-x86_64-with-Ubuntu-19.10-eoan':
-    print("Starting Beta...")
-    bot.run(tokens["bot"]["beta"])
- elif platform.system() == "Linux":
+ if platform.platform() == 'Linux-4.15.0-66-generic-x86_64-with-Ubuntu-18.04-bionic':
     print("Starting Stable...")
     bot.run(tokens["bot"]["stable"])
+ if platform.system() == 'Linux':
+    print("Starting Beta...")
+    bot.run(tokens["bot"]["beta"])
  else:
     print("Platform is not Linux. Aborting...")
 except (KeyboardInterrupt, SystemExit):
