@@ -124,20 +124,25 @@ async def status_task():
     "with an interdimensional traveller",
     "with Python and Javascript",
     "with about 2000 lines of code",
-    "with the developer's mental sanity"
+    "with the developer's mental sanity",
     "with broken code",
     "with actual working code",
     "with the dev's lives",
     "with another bot", 
     "with a foo bar",
     "with a greeting to the world",
-    "with some Pokemon"
+    "with some Pokemon",
+    "with Wumpus"
   ]
   while True:
-   if not round(bot.latency * 1000) > 200:
+   ping_lvl = round(bot.latency * 1000)
+   if not ping_lvl > 200:
     await bot.change_presence(activity=discord.Game(name=f"{random.choice(games)} || Type {p}help for commands"))
    else:
     await bot.change_presence(activity=discord.Game(name=f"Bot affected by Discord issues."),status=discord.Status.idle)
+    if not bot.user.id == 538765900841746444:
+        em = discord.Embed(title="High Ping Detected",description=f"Ping: {ping_lvl}ms\nDiscord might be experiencing issues. Trying to recover...",color=randomColor(),timestamp=datetime.datetime.now())
+        await (bot.get_channel(637410687064342535)).send(embed=em)
    
    await asyncio.sleep(20)
 
@@ -224,6 +229,7 @@ async def changelog(ctx):
 async def botserver(ctx):
     await ctx.send(ctx.message.author.mention + " here you go: " + "https://discord.gg/dcBumZJ")
 
+
 @bot.command(pass_context=True,brief="Invite the bot to your server!",description="Gives you an invite link to invite the bot to your server.")
 async def invite(ctx):
     embed=discord.Embed(title="Invite me to your server", url=f"https://discordapp.com/oauth2/authorize?client_id={bot.user.id}&permissions=204811351&scope=bot", color=0x7289da)
@@ -303,7 +309,7 @@ async def stats(ctx):
     em.add_field(name="Version Lists",value=f"Python Version: {str(platform.python_version())}\nDiscord.py Version: {discord.__version__}")
     ramav = psutil._common.bytes2human(psutil.virtual_memory().available)
     ramused = psutil._common.bytes2human(psutil.virtual_memory().used)
-    em.add_field(name="System Stats",value=f"CPU Usage: {psutil.cpu_percent()}%\nRAM Available: {ramav}B\nRAM Used: {ramused}B")
+    em.add_field(name="System Stats",value=f"**--System Wide--**\nCPU Usage: {psutil.cpu_percent()}%\nRAM Available: {ramav}B\nRAM Used: {ramused}B")
     em.set_footer(text=f"Bot made with <3 by {discord.utils.get(bot.users,id=478675118332051466)}",icon_url=discord.utils.get(bot.users,id=478675118332051466).avatar_url)
     
     await msg.edit(content=None,embed=em)
@@ -517,14 +523,14 @@ async def suggestion(ctx, *, text : str):
 
 @commands.has_permissions(kick_members = True)
 @bot.command(pass_context=True,brief="Kicks a user",description="Kicks a user from your server. The user will be able to rejoin with a new invite link.")
-async def kick(ctx, user : discord.Member = None):
+async def kick(ctx, user : discord.Member):
     await ctx.guild.kick(user)
     choices [
         f"**{user.name}** flew off the stage but forgot to recover",
         f"**{user.name}** got shown the door",
         f"**{user.name}** got their membership permissions revoked",
         f"**{user.name}** got oof'd",
-        f"**{user.name}** got 505'd"
+        f"**{user.name}** got 307'd"
     ]
     await ctx.send(content=random.choice(choices))
 
@@ -539,7 +545,8 @@ async def ban(ctx, user : discord.Member,*, reason: str):
         f"**{user.name}** saw stars and fainted",
         f"**{user.name}** was forced to say bye-bye",
         f"**{user.name}** decided to see the wrong end of the hammer.",
-        f"**{user.name}** got Ctrl + Alt + Yeeted (im sorry programmers)"
+        f"**{user.name}** got Ctrl + Alt + Yeeted (im sorry programmers)",
+        f"**{user.name}** struck an angry chicken"
     ]
     await ctx.send(content=random.choice(choices))
 
@@ -884,7 +891,7 @@ async def ship(ctx, user : discord.Member, user2 : discord.Member):
     if (user.id == 478675118332051466 or user.id == 468785679036317699) and (user.id == 478675118332051466 or user.id == 468785679036317699):
         randomin = 100
     
-    em = discord.Embed(title=f"{user.display_name} x {user2.display_name}",color=discord.Color.purple())
+    em = discord.Embed(title=f"{user.display_name} x {user2.display_name}",color=randomColor())
     
     if randomin >= 0:
         fmt = "Eeeeeeehhhhhhh..."
@@ -913,7 +920,7 @@ async def ship(ctx, user : discord.Member, user2 : discord.Member):
         fmt = "Perfect couple!"
      
     em.add_field(name=f"{randomin}%",value=fmt)
-    em.add_field(name="Ship Name",value="BROKEN: WILL BE FIXED LATER")
+    em.add_field(name="Ship Name",value=f"{(str(user.name))[:int(len((str(user.name))) / 2)] + (str(user2.name))[int(len((str(user2.name))) / 2):]}",inline=False)
     em.set_thumbnail(url=user.avatar_url_as(size=1024))
     em.set_footer(text="Will make the image better once the bot has access to image manipulation")
     await ctx.send(embed=em)
@@ -1137,7 +1144,7 @@ async def profile(ctx, user : discord.Member = "plc"):
     cmdr = await bot.db.commandsRan.find_one({"id": str(user.id)})
     em = discord.Embed(title=f"Profile for {user}",color=discord.Color.magenta())
     em.add_field(name="Commands Ran (in total)",value=(str(cmdr['count']) if cmdr is not None else "0"))
-    em.add_field(name="Bot Role",value=("Developer" if user.id in config['Admin'] else "Normal User"))
+    em.add_field(name="Bot Role",value=("Developer" if user.id in config['Admin'] else ("Normal User" if not user.id in config["SpecialThanks"] else "Special Thank <3"))) #Purposely made this ugly, get fucked Banana.
     mguilds = 0
     for x in bot.guilds:
         if discord.utils.get(x.members,id=user.id):
@@ -1241,6 +1248,7 @@ async def holdhands(ctx, user : discord.Member = "plc"):
     em.set_image(url=json['response']['image'])
     em.set_footer(text=f"Powered by furry.bot")
     await ctx.send(embed=em)
+
 
 
 
@@ -1725,11 +1733,11 @@ async def e621(ctx,*,search : str):
         result = random.choice(x)
      except:
          return await ctx.send("No posts found")
-     em = discord.Embed(description=f"**Score {result['score']} **|** Rating: {result['rating']} **|** [Post]({result['sample_url']})**",color=discord.Color.blue())
-     if not result['file_url'].endswith('.webm'):
+     em = discord.Embed(description=f"**Score {result['score']} **|** Rating: {result['rating']} **|** [Post]({result['sample_url']})**",color=randomColor())
+     if not result['file_url'].endswith('.webm') and not result['file_url'].endswith('.swf'):
         em.set_image(url=result['file_url'])
      else:
-        em.add_field(name="Unable to view file (webm)",value="Discord's embed system doesn't work with webm files. Please view on e621")
+        em.add_field(name="Unable to view file (webm/swf)",value="Discord's embed system doesn't work with webm/swf files. Please view on e621")
      em.set_footer(text=f"Post ID: {result['id']} | Author: {result['author']}")
 
      await ctx.send(embed=em)
@@ -2197,6 +2205,7 @@ async def on_command_error(ctx, error): #Error handler
     
     code = ''.join(random.choice(string.ascii_letters + string.digits) for i in range(10))
 
+    #traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
     
     #Rewrote the embed because imo it was ugly
     try: #Put this in a try/except so it doesnt spew out a load of shit on shutdown
@@ -2369,21 +2378,20 @@ async def on_guild_join(guild):
 
 @bot.event
 async def on_guild_unavailable(guild):
-    em = discord.Embed(title=f"{guild} unavailable",description="This guild has became unavailable. This might be due to Discord downtime.",color=discord.Colour.orange())
-    em.add_field(name="ID",value=guild.id)
-    em.add_field(name="Owner",value=guild.owner.name)
-    em.add_field(name="Shard ID",value=guild.shard_id)
-    em.add_field(name="Member Count",value=len(guild.members))
-    em.set_thumbnail(url=guild.icon_url)
+    em = discord.Embed(title=f"{(guild if guild.name else 'N/A')} unavailable",description="This guild has became unavailable. This might be due to Discord downtime.\n**Some attributes may not be able to be listed**",color=discord.Colour.orange())
+    em.add_field(name="ID",value=(guild.id if guild.id else "Unavailable"))
+    em.add_field(name="Owner",value=(guild.owner.name if guild.owner else "Unavailable"))
+    em.add_field(name="Shard ID",value=(guild.shard_id if guild.shard_id else "Unavailable"))
+    em.add_field(name="Member Count",value=(len(guild.members) if guild.members else "Unavailable"))
+    em.set_thumbnail(url=(guild.icon_url if guild.icon_url else "https://baileymt.com/wp-content/uploads/2017/04/placeholder.jpg"))
     em.set_footer(text=f"Current Guild Count: {len(bot.guilds)}")
 
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
 
 
-
 @bot.event
 async def on_guild_available(guild):
-    if bot.is_ready():
+    if bot.is_ready() and bot.user and guild.channels: 
         em = discord.Embed(title=f"{guild} recovered",description="This guild has recovered. It might of been unavailable due to downtime.",color=discord.Colour.magenta())
         em.add_field(name="ID",value=guild.id)
         em.add_field(name="Owner",value=guild.owner.name)
@@ -2453,7 +2461,8 @@ async def on_message_delete(msg):
         em = discord.Embed(title="Deleted Message",description=msg.content,color=discord.Color.red(),timestamp=datetime.datetime.now())
         em.set_author(name=msg.author.display_name,icon_url=msg.author.avatar_url)
 
-        channel = bot.get_channel((await bot.db.modlog.find_one({"id": msg.guild.id}))["channel"])
+        chnl_id = await bot.db.modlog.find_one({"id": msg.guild.id})
+        channel = bot.get_channel(chnl_id["channel"])
         await channel.send(embed=em)
 
 
