@@ -2451,7 +2451,7 @@ async def on_message_delete(msg):
 
 
 try:
- if platform.platform() == 'Linux-4.15.0-66-generic-x86_64-with-Ubuntu-18.04-bionic':
+ if platform.platform() == 'Linux-4.15.0-66-generic-x86_64-with-Ubuntu-18.04-bionic' or 'Linux-4.19.57-v7+-armv7l-with-debian-10.0':
     print("Starting Stable...")
     bot.run(tokens["bot"]["stable"])
  if platform.system() == 'Linux':
