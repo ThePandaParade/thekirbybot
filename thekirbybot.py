@@ -140,9 +140,6 @@ async def status_task():
     await bot.change_presence(activity=discord.Game(name=f"{random.choice(games)} || Type {p}help for commands"))
    else:
     await bot.change_presence(activity=discord.Game(name=f"Bot affected by Discord issues."),status=discord.Status.idle)
-    if not bot.user.id == 538765900841746444:
-        em = discord.Embed(title="High Ping Detected",description=f"Ping: {ping_lvl}ms\nDiscord might be experiencing issues. Trying to recover...",color=randomColor(),timestamp=datetime.datetime.now())
-        await (bot.get_channel(637410687064342535)).send(embed=em)
    
    await asyncio.sleep(20)
 
@@ -2387,23 +2384,6 @@ async def on_guild_unavailable(guild):
     em.set_footer(text=f"Current Guild Count: {len(bot.guilds)}")
 
     await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
-
-
-@bot.event
-async def on_guild_available(guild):
-    if bot.is_ready() and bot.user and guild.channels: 
-        em = discord.Embed(title=f"{guild} recovered",description="This guild has recovered. It might of been unavailable due to downtime.",color=discord.Colour.magenta())
-        em.add_field(name="ID",value=guild.id)
-        em.add_field(name="Owner",value=guild.owner.name)
-        em.add_field(name="Shard ID",value=guild.shard_id)
-        em.add_field(name="Member Count",value=len(guild.members))
-        em.set_thumbnail(url=guild.icon_url)
-        em.set_footer(text=f"Current Guild Count: {len(bot.guilds)}")
-
-        await discord.utils.get(bot.get_guild(619924570110951435).channels,id=632269025463894026).send(embed=em)
-    else:
-        pass
-
 
 @bot.event
 async def on_guild_remove(guild):
