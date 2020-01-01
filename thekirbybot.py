@@ -2450,18 +2450,4 @@ async def on_message_delete(msg):
 
 
 
-try:
- if platform.platform() == 'Linux-4.15.0-66-generic-x86_64-with-Ubuntu-18.04-bionic' or 'Linux-4.19.57-v7+-armv7l-with-debian-10.0' or 'Linux-5.0.0-36-generic-x86_64-with-Ubuntu-19.04-disco':
-    print("Starting Stable...")
-    bot.run(tokens["bot"]["stable"])
- if platform.system() == 'Linux':
-    print("Starting Beta...")
-    bot.run(tokens["bot"]["beta"])
- else:
-    print("Platform is not Linux. Aborting...")
-except (KeyboardInterrupt, SystemExit):
-    print("Closing Aiohttp session...")
-    bot.session.close()
-    print("Logging out of Discord...")
-    bot.logout()
-    print("Finished!")
+bot.run(tokens["bot"]["stable"])
